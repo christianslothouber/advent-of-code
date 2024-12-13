@@ -1,2 +1,1 @@
-# advent-of-code
-Advent of Code challenges with "Spice"
+# Advent of Code
