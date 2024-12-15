@@ -1,6 +1,5 @@
 import time
 import os
-
 import requests
 
 
@@ -20,7 +19,7 @@ def solve(year, day):
 
 def fetch_answer(year, day, part, puzzle):
     url = f'https://advent.fly.dev/solve/{year}/{day}/{part}'
-    response = requests.post(url, data=puzzle)
+    response = requests.post(url, data = puzzle)
 
     if response.status_code != 200:
         print(f'Solving failed with status code {response.status_code}')
@@ -37,8 +36,8 @@ def fetch_puzzle(year, day):
         return None
 
     url = f'https://adventofcode.com/{year}/day/{day}/input'
-    cookies = {'session': session}
-    response = requests.get(url, cookies=cookies)
+    cookies = { 'session': session }
+    response = requests.get(url, cookies = cookies)
 
     if response.status_code != 200:
         print(f'Fetching input failed with status code {response.status_code}')
@@ -55,10 +54,10 @@ def submit_answer(year, day, part, answer):
         return
 
     url = f'https://adventofcode.com/{year}/day/{day}/answer'
-    cookies = {'session': session}
-    form = {'level': part, 'answer': answer}
+    cookies = { 'session': session }
+    form = { 'level': part, 'answer': answer }
 
-    response = requests.post(url, cookies=cookies, data=form)
+    response = requests.post(url, cookies = cookies, data = form)
 
     if response.status_code != 200:
         print(f'Submitting failed with status code {response.status_code}')
