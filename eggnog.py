@@ -19,11 +19,11 @@ def solve(year, day):
 
 
 def fetch_answer(year, day, part, puzzle):
-    url = f"https://advent.fly.dev/solve/{year}/{day}/{part}"
+    url = f'https://advent.fly.dev/solve/{year}/{day}/{part}'
     response = requests.post(url, data=puzzle)
 
     if response.status_code != 200:
-        print(f"Solving failed with status code {response.status_code}")
+        print(f'Solving failed with status code {response.status_code}')
         return None
 
     return response.text
@@ -62,7 +62,7 @@ def submit_answer(year, day, part, answer):
 
     if response.status_code != 200:
         print(f'Submitting failed with status code {response.status_code}')
-    elif "that's the right answer" in response.text:
+    elif "that\'s the right answer" in response.text:
         print(f'Submitted year {year}, day {day}, part {part} successfully')
     elif 'Did you already complete it?' in response.text:
         print(f'Year {year}, day {day}, part {part} already submitted')
