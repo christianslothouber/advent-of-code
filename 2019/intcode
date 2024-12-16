@@ -1,0 +1,142 @@
+#!/usr/bin/env python3
+
+import argparse
+
+
+def parse_opcode(code):
+    opcode = code % 100
+
+    mode_1 = code % 1000 // 100
+    mode_2 = code % 10000 // 1000
+    mode_3 = code // 10000
+
+    return [opcode, mode_1, mode_2, mode_3]
+
+
+def pop(cells, address, mode):
+    if address < len(cells):
+        match mode:
+            case 0:
+                return pop(cells, cells[address], 1)
+            case 1:
+                return cells[address]
+            case _:
+                raise ValueError(f'Invalid mode: {mode}')
+    else:
+        match mode:
+            case 0:
+                return cells[0]
+            case 1:
+                return 0
+            case _:
+                raise ValueError(f'Invalid mode: {mode}')
+
+
+def push(cells, address, value):
+    if address >= len(cells):
+        cells.extend([0] * (address - len(cells) + 1))
+
+    cells[address] = value
+
+
+def compute(cells):
+    print('Starting program')
+    instruction_pointer = 0
+
+    while True:
+        instruction = cells[instruction_pointer]
+        opcode = parse_opcode(instruction)
+
+        match opcode[0]:
+            case 1:
+                param_1 = pop(cells, instruction_pointer + 1, opcode[1])
+                param_2 = pop(cells, instruction_pointer + 2, opcode[2])
+                param_3 = pop(cells, instruction_pointer + 3, 1)
+
+                push(cells, param_3, param_1 + param_2)
+
+                instruction_pointer += 4
+            case 2:
+                param_1 = pop(cells, instruction_pointer + 1, opcode[1])
+                param_2 = pop(cells, instruction_pointer + 2, opcode[2])
+                param_3 = pop(cells, instruction_pointer + 3, 1)
+
+                push(cells, param_3, param_1 * param_2)
+
+                instruction_pointer += 4
+            case 3:
+                param_1 = pop(cells, instruction_pointer + 1, 1)
+
+                print('We need some input:')
+
+                push(cells, param_1, int(input()))
+
+                instruction_pointer += 2
+            case 4:
+                param_1 = pop(cells, instruction_pointer + 1, opcode[1])
+
+                print(param_1)
+
+                instruction_pointer += 2
+            case 5:
+                param_1 = pop(cells, instruction_pointer + 1, opcode[1])
+                param_2 = pop(cells, instruction_pointer + 2, opcode[2])
+
+                if param_1 != 0:
+                    instruction_pointer = param_2
+                else:
+                    instruction_pointer += 3
+            case 6:
+                param_1 = pop(cells, instruction_pointer + 1, opcode[1])
+                param_2 = pop(cells, instruction_pointer + 2, opcode[2])
+
+                if param_1 == 0:
+                    instruction_pointer = param_2
+                else:
+                    instruction_pointer += 3
+            case 7:
+                param_1 = pop(cells, instruction_pointer + 1, opcode[1])
+                param_2 = pop(cells, instruction_pointer + 2, opcode[2])
+                param_3 = pop(cells, instruction_pointer + 3, 1)
+
+                if param_1 < param_2:
+                    push(cells, param_3, 1)
+                else:
+                    push(cells, param_3, 0)
+
+                instruction_pointer += 4
+            case 8:
+                param_1 = pop(cells, instruction_pointer + 1, opcode[1])
+                param_2 = pop(cells, instruction_pointer + 2, opcode[2])
+                param_3 = pop(cells, instruction_pointer + 3, 1)
+
+                if param_1 == param_2:
+                    push(cells, param_3, 1)
+                else:
+                    push(cells, param_3, 0)
+
+                instruction_pointer += 4
+            case 99:
+                print('Exiting program')
+                break
+            case _:
+                print(f'Unknown opcode {opcode} at position {instruction_pointer}')
+                break
+
+
+def parse(filename):
+    return list(map(int, open(filename).read().strip().split(',')))
+
+
+def main():
+    parser = argparse.ArgumentParser(description = "Advent of Code Intcode Interpreter")
+    parser.add_argument("filename", type = str, help = "The file with Intcode program")
+    args = parser.parse_args()
+
+    program = parse(args.filename)
+
+    compute(program)
+
+
+if __name__ == '__main__':
+    main()
