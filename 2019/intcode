@@ -4,6 +4,7 @@ import argparse
 
 INSTRUCTION_POINTER = 0
 RELATIVE_BASE = 0
+HALTED = False
 
 
 def parse_opcode(code):
@@ -17,26 +18,18 @@ def parse_opcode(code):
 
 
 def pop(cells, address, mode):
-    if address < len(cells):
-        match mode:
-            case 0:
-                return pop(cells, cells[address], 1)
-            case 1:
-                return cells[address]
-            case 2:
-                return pop(cells, RELATIVE_BASE + cells[address], 1)
-            case _:
-                raise ValueError(f'Invalid mode: {mode}')
-    else:
-        match mode:
-            case 0:
-                return cells[0]
-            case 1:
-                return 0
-            case 2:
-                return pop(cells, RELATIVE_BASE, 1)
-            case _:
-                raise ValueError(f'Invalid mode: {mode}')
+    if address >= len(cells):
+        return 0
+
+    match mode:
+        case 0:
+            return pop(cells, cells[address], 1)
+        case 1:
+            return cells[address]
+        case 2:
+            return pop(cells, RELATIVE_BASE + cells[address], 1)
+        case _:
+            raise ValueError(f'UNKNOWN MODE: {mode}')
 
 
 def push(cells, address, value):
@@ -50,104 +43,170 @@ def calc_address(cells, address, mode):
     match mode:
         case 0:
             return pop(cells, address, 1)
+        case 1:
+            raise ValueError(f'IMMEDIATE MODE FORBIDDEN')
         case 2:
             return RELATIVE_BASE + pop(cells, address, 1)
         case _:
-            raise ValueError(f'Invalid mode: {mode}')
+            raise ValueError(f'UNKNOWN MODE: {mode}')
 
 
 def compute(cells):
-    print('Starting program')
+    print('STARTING PROGRAM')
 
-    global INSTRUCTION_POINTER
-    global RELATIVE_BASE
-
-    while True:
+    while not HALTED:
         instruction = cells[INSTRUCTION_POINTER]
         opcode = parse_opcode(instruction)
 
         match opcode[0]:
             case 1:
-                param_1 = pop(cells, INSTRUCTION_POINTER + 1, opcode[1])
-                param_2 = pop(cells, INSTRUCTION_POINTER + 2, opcode[2])
-                param_3 = calc_address(cells, INSTRUCTION_POINTER + 3, opcode[3])
-
-                push(cells, param_3, param_1 + param_2)
-
-                INSTRUCTION_POINTER += 4
+                add(cells, opcode[1:4])
             case 2:
-                param_1 = pop(cells, INSTRUCTION_POINTER + 1, opcode[1])
-                param_2 = pop(cells, INSTRUCTION_POINTER + 2, opcode[2])
-                param_3 = calc_address(cells, INSTRUCTION_POINTER + 3, opcode[3])
-
-                push(cells, param_3, param_1 * param_2)
-
-                INSTRUCTION_POINTER += 4
+                mul(cells, opcode[1:4])
             case 3:
-                print('Enter input:')
-
-                param_1 = calc_address(cells, INSTRUCTION_POINTER + 1, opcode[1])
-                value = int(input())
-
-                push(cells, param_1, value)
-
-                INSTRUCTION_POINTER += 2
+                inp(cells, opcode[1])
             case 4:
-                param_1 = pop(cells, INSTRUCTION_POINTER + 1, opcode[1])
-
-                print(param_1)
-
-                INSTRUCTION_POINTER += 2
+                out(cells, opcode[1])
             case 5:
-                param_1 = pop(cells, INSTRUCTION_POINTER + 1, opcode[1])
-                param_2 = pop(cells, INSTRUCTION_POINTER + 2, opcode[2])
-
-                if param_1 != 0:
-                    INSTRUCTION_POINTER = param_2
-                else:
-                    INSTRUCTION_POINTER += 3
+                jnz(cells, opcode[1:3])
             case 6:
-                param_1 = pop(cells, INSTRUCTION_POINTER + 1, opcode[1])
-                param_2 = pop(cells, INSTRUCTION_POINTER + 2, opcode[2])
-
-                if param_1 == 0:
-                    INSTRUCTION_POINTER = param_2
-                else:
-                    INSTRUCTION_POINTER += 3
+                jz(cells, opcode[1:3])
             case 7:
-                param_1 = pop(cells, INSTRUCTION_POINTER + 1, opcode[1])
-                param_2 = pop(cells, INSTRUCTION_POINTER + 2, opcode[2])
-                param_3 = calc_address(cells, INSTRUCTION_POINTER + 3, opcode[3])
-
-                if param_1 < param_2:
-                    push(cells, param_3, 1)
-                else:
-                    push(cells, param_3, 0)
-
-                INSTRUCTION_POINTER += 4
+                lt(cells, opcode[1:4])
             case 8:
-                param_1 = pop(cells, INSTRUCTION_POINTER + 1, opcode[1])
-                param_2 = pop(cells, INSTRUCTION_POINTER + 2, opcode[2])
-                param_3 = calc_address(cells, INSTRUCTION_POINTER + 3, opcode[3])
-
-                if param_1 == param_2:
-                    push(cells, param_3, 1)
-                else:
-                    push(cells, param_3, 0)
-
-                INSTRUCTION_POINTER += 4
+                eq(cells, opcode[1:4])
             case 9:
-                param_1 = pop(cells, INSTRUCTION_POINTER + 1, opcode[1])
-
-                RELATIVE_BASE += param_1
-
-                INSTRUCTION_POINTER += 2
+                arb(cells, opcode[1])
             case 99:
-                print('Exiting program')
-                break
+                hlt()
             case _:
-                print(f'Unknown opcode {opcode} at position {INSTRUCTION_POINTER}')
-                break
+                nop(opcode[0])
+
+
+def nop(opcode):
+    global HALTED
+    global INSTRUCTION_POINTER
+
+    print(f'UNKNOWN OPCODE: {opcode} AT POS: {INSTRUCTION_POINTER}')
+    HALTED = True
+
+    INSTRUCTION_POINTER += 0
+
+
+def hlt():
+    global HALTED
+    global INSTRUCTION_POINTER
+
+    print('EXITING PROGRAM')
+    HALTED = True
+
+    INSTRUCTION_POINTER += 0
+
+
+def arb(cells, mode):
+    global RELATIVE_BASE
+    global INSTRUCTION_POINTER
+
+    param_1 = pop(cells, INSTRUCTION_POINTER + 1, mode)
+    RELATIVE_BASE += param_1
+
+    INSTRUCTION_POINTER += 2
+
+
+def eq(cells, modes):
+    global INSTRUCTION_POINTER
+
+    param_1 = pop(cells, INSTRUCTION_POINTER + 1, modes[0])
+    param_2 = pop(cells, INSTRUCTION_POINTER + 2, modes[1])
+    param_3 = calc_address(cells, INSTRUCTION_POINTER + 3, modes[2])
+
+    if param_1 == param_2:
+        push(cells, param_3, 1)
+    else:
+        push(cells, param_3, 0)
+
+    INSTRUCTION_POINTER += 4
+
+
+def lt(cells, modes):
+    global INSTRUCTION_POINTER
+
+    param_1 = pop(cells, INSTRUCTION_POINTER + 1, modes[0])
+    param_2 = pop(cells, INSTRUCTION_POINTER + 2, modes[1])
+    param_3 = calc_address(cells, INSTRUCTION_POINTER + 3, modes[2])
+
+    if param_1 < param_2:
+        push(cells, param_3, 1)
+    else:
+        push(cells, param_3, 0)
+
+    INSTRUCTION_POINTER += 4
+
+
+def jz(cells, modes):
+    global INSTRUCTION_POINTER
+
+    param_1 = pop(cells, INSTRUCTION_POINTER + 1, modes[0])
+    param_2 = pop(cells, INSTRUCTION_POINTER + 2, modes[1])
+
+    if param_1 == 0:
+        INSTRUCTION_POINTER = param_2
+    else:
+        INSTRUCTION_POINTER += 3
+
+
+def jnz(cells, modes):
+    global INSTRUCTION_POINTER
+
+    param_1 = pop(cells, INSTRUCTION_POINTER + 1, modes[0])
+    param_2 = pop(cells, INSTRUCTION_POINTER + 2, modes[1])
+
+    if param_1 != 0:
+        INSTRUCTION_POINTER = param_2
+    else:
+        INSTRUCTION_POINTER += 3
+
+
+def out(cells, mode):
+    global INSTRUCTION_POINTER
+
+    param_1 = pop(cells, INSTRUCTION_POINTER + 1, mode)
+    print(f'OUTPUT: {param_1}')
+
+    INSTRUCTION_POINTER += 2
+
+
+def inp(cells, mode):
+    global INSTRUCTION_POINTER
+
+    print('INPUT: ', end = '')
+    param_1 = calc_address(cells, INSTRUCTION_POINTER + 1, mode)
+    value = int(input())
+    push(cells, param_1, value)
+
+    INSTRUCTION_POINTER += 2
+
+
+def mul(cells, modes):
+    global INSTRUCTION_POINTER
+
+    param_1 = pop(cells, INSTRUCTION_POINTER + 1, modes[0])
+    param_2 = pop(cells, INSTRUCTION_POINTER + 2, modes[1])
+    param_3 = calc_address(cells, INSTRUCTION_POINTER + 3, modes[2])
+    push(cells, param_3, param_1 * param_2)
+
+    INSTRUCTION_POINTER += 4
+
+
+def add(cells, modes):
+    global INSTRUCTION_POINTER
+
+    param_1 = pop(cells, INSTRUCTION_POINTER + 1, modes[0])
+    param_2 = pop(cells, INSTRUCTION_POINTER + 2, modes[1])
+    param_3 = calc_address(cells, INSTRUCTION_POINTER + 3, modes[2])
+    push(cells, param_3, param_1 + param_2)
+
+    INSTRUCTION_POINTER += 4
 
 
 def parse(filename):
@@ -155,8 +214,8 @@ def parse(filename):
 
 
 def main():
-    parser = argparse.ArgumentParser(description = "Advent of Code Intcode Interpreter")
-    parser.add_argument("filename", type = str, help = "The file with Intcode program")
+    parser = argparse.ArgumentParser(description = 'Advent of Code - Intcode Interpreter')
+    parser.add_argument('filename', type = str, help = 'The file with an Intcode program')
     args = parser.parse_args()
 
     program = parse(args.filename)
