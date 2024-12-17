@@ -61,7 +61,7 @@ def submit_answer(year, day, part, answer):
 
     if response.status_code != 200:
         print(f'Submitting failed with status code {response.status_code}')
-    elif "that\'s the right answer" in response.text:
+    elif "that's the right answer" in response.text:
         print(f'Submitted year {year}, day {day}, part {part} successfully')
     elif 'Did you already complete it?' in response.text:
         print(f'Year {year}, day {day}, part {part} already submitted')
@@ -76,7 +76,9 @@ def wait():
 
 
 def main():
-    solve(2015, 1)
+    for year in range(2015, 2024 + 1):
+        for day in range(1, 25 + 1):
+            solve(year, day)
 
 
 if __name__ == '__main__':
