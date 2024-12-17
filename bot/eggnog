@@ -1,6 +1,10 @@
-import time
-import os
+#!/usr/bin/env python3
+
+import argparse
 import requests
+import os
+import time
+from datetime import datetime
 
 
 def solve(year, day):
@@ -76,9 +80,37 @@ def wait():
 
 
 def main():
-    for year in range(2015, 2024 + 1):
+    parser = argparse.ArgumentParser(description = 'Advent of Code - automatic challenge "solver"')
+    group = parser.add_mutually_exclusive_group(required = True)
+    group.add_argument("--all", '-a', action = "store_true", help = "Solve all challenges")
+    group.add_argument("--year", '-y', type = int, help = "Solve all challenges for specific year")
+    parser.add_argument("--day", '-d', type = int, help = "Solve all challenges for specific year and day")
+    args = parser.parse_args()
+
+    if args.all:
+        start_year = 2015
+        end_year = datetime.today().year
+
+        print(f"Start solving all Advent of Code challenges from {start_year} till {end_year}")
+
+        for year in range(start_year, end_year + 1):
+            for day in range(1, 25 + 1):
+                solve(year, day)
+
+        print("Done solving all Advent of Code challenges")
+    elif args.year and not args.day:
+        print(f"Start solving all challenges for year {args.year}")
+
         for day in range(1, 25 + 1):
-            solve(year, day)
+            solve(args.year, day)
+
+        print(f"Done solving all challenges for year {args.year}")
+    elif args.year and args.day:
+        print(f"Start solving challenges for year {args.year} day {args.day}")
+
+        solve(args.year, args.day)
+
+        print(f"Done solving challenges for year {args.year} day {args.day}")
 
 
 if __name__ == '__main__':
